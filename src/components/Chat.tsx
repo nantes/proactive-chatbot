@@ -1,100 +1,135 @@
+import React from 'react';
 import { useState } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  TextField,
-  IconButton,
-} from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
+import { Box, Paper, Typography, TextField, IconButton, Tabs, Tab } from '@mui/material';
+import { Send as SendIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useChat } from '../hooks/useChat';
 import type { Message } from '../types/chat';
 
-interface ChatProps {
-  initialMessages?: Message[];
+export interface ChatProps {
 }
 
-export const Chat: React.FC<ChatProps> = ({ initialMessages = [] }) => {
-  const [inputMessage, setInputMessage] = useState('');
+export const Chat: React.FC<ChatProps> = () => {
   const [chatState, chatActions] = useChat();
+  const [inputValue, setInputValue] = useState('');
+  const [tabValue, setTabValue] = useState(0);
 
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
-
-    try {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        content: message,
-        sender: 'user',
-        timestamp: new Date().toISOString(),
-        type: 'text',
-      };
-
-      await chatActions.addMessage(newMessage);
-      setInputMessage('');
-    } catch (err) {
-      console.error('Error sending message:', err);
-      chatActions.setChatError('Error al enviar el mensaje');
-    }
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage(inputMessage);
-    }
+  const handleDeleteReminder = (reminderId: string) => {
+    chatActions.deleteReminder(reminderId);
+  };
+
+  const handleDeleteCalendarEvent = (eventId: string) => {
+    chatActions.deleteCalendarEvent(eventId);
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim()) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      sender: 'user',
+      timestamp: new Date().toISOString(),
+      type: 'text',
+      role: 'user',
+    };
+
+    setInputValue('');
+    await chatActions.addMessage(newMessage);
   };
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto', p: 2 }}>
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="h5" component="h1" gutterBottom>
-          Chat Proactivo
-        </Typography>
-        <Box sx={{ height: 400, overflowY: 'auto', mb: 2 }}>
-          {chatState.messages.map((message) => (
-            <Box
-              key={message.id}
-              sx={{
-                mb: 2,
-                display: 'flex',
-                flexDirection: message.sender === 'user' ? 'row' : 'row-reverse',
-              }}
-            >
+    <Box sx={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Tabs value={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tab label="Chat" />
+        <Tab label="Reminders" />
+        <Tab label="Calendar" />
+      </Tabs>
+
+      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tab label="Chat" />
+          <Tab label="Reminders" />
+          <Tab label="Calendar" />
+        </Tabs>
+
+        {tabValue === 0 && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {chatState.messages.map((message) => (
               <Paper
+                key={message.id}
                 sx={{
                   p: 2,
-                  maxWidth: '70%',
-                  backgroundColor: message.sender === 'user' ? '#e3f2fd' : '#fff',
+                  bgcolor: message.sender === 'user' ? 'primary.light' : 'background.paper',
+                  alignSelf: message.sender === 'user' ? 'flex-end' : 'flex-start',
+                  width: 'fit-content',
+                  maxWidth: '80%',
                 }}
               >
-                <Typography>{message.content}</Typography>
-                <Typography variant="caption" sx={{ mt: 1 }}>
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </Typography>
+                <Typography variant="body1">{message.content}</Typography>
               </Paper>
-            </Box>
-          ))}
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Escribe tu mensaje..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={chatState.isTyping}
-          />
-          <IconButton
-            color="primary"
-            onClick={() => handleSendMessage(inputMessage)}
-            disabled={chatState.isTyping || !inputMessage.trim()}
-          >
-            <SendIcon />
-          </IconButton>
-        </Box>
-      </Paper>
+            ))}
+          </Box>
+        )}
+
+        {tabValue === 1 && (
+          <Box>
+            {chatState.reminders?.map((reminder) => (
+              <Paper key={reminder.id} sx={{ p: 2, mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="body1">{reminder.title}</Typography>
+                    <Typography variant="caption">{reminder.date}</Typography>
+                  </Box>
+                  <IconButton onClick={() => handleDeleteReminder(reminder.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+        )}
+
+        {tabValue === 2 && (
+          <Box>
+            {chatState.calendarEvents?.map((event) => (
+              <Paper key={event.id} sx={{ p: 2, mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="body1">{event.title}</Typography>
+                    <Typography variant="caption">{event.start} - {event.end}</Typography>
+                  </Box>
+                  <IconButton onClick={() => handleDeleteCalendarEvent(event.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      <Box sx={{ display: 'flex', p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Type your message..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+        />
+        <IconButton onClick={handleSend} sx={{ ml: 2 }}>
+          <SendIcon />
+        </IconButton>
+      </Box>
     </Box>
   );
 };
