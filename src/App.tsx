@@ -29,6 +29,7 @@ const router = createBrowserRouter([
 
 function App() {
   const [count, setCount] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -42,7 +43,23 @@ function App() {
             <img src={reactLogo} className="logo react" alt="React logo" />
           </a>
         </div>
-        <Chat />
+        {error ? (
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#ffebee',
+            color: '#c62828',
+            border: '1px solid #ffcdd2',
+            borderRadius: '4px',
+            maxWidth: '600px',
+            margin: '20px auto',
+            textAlign: 'center'
+          }}>
+            <h2>Error en la aplicación:</h2>
+            <p>{error}</p>
+          </div>
+        ) : (
+          <Chat />
+        )}
       </ThemeProvider>
     </QueryClientProvider>
   )

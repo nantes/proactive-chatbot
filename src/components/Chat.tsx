@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
-import { Box, Paper, Typography, TextField, IconButton, Tabs, Tab } from '@mui/material';
+import { Box, Paper, Typography, TextField, IconButton, Tabs, Tab, CircularProgress } from '@mui/material';
 import { Send as SendIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useChat } from '../hooks/useChat';
 import type { Message } from '../types/chat';
@@ -12,6 +12,42 @@ export const Chat: React.FC<ChatProps> = () => {
   const [chatState, chatActions] = useChat();
   const [inputValue, setInputValue] = useState('');
   const [tabValue, setTabValue] = useState(0);
+
+  if (chatState.error) {
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#ffebee',
+        color: '#c62828',
+        border: '1px solid #ffcdd2',
+        borderRadius: '4px',
+        maxWidth: '600px',
+        margin: '20px auto',
+        textAlign: 'center'
+      }}>
+        <h2>Error en el componente Chat:</h2>
+        <p>{chatState.error}</p>
+      </div>
+    );
+  }
+
+  if (chatState.isLoading) {
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#f5f5f5',
+        color: '#666',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        maxWidth: '600px',
+        margin: '20px auto',
+        textAlign: 'center'
+      }}>
+        <CircularProgress />
+        <p>Cargando mensajes...</p>
+      </div>
+    );
+  }
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -40,6 +76,8 @@ export const Chat: React.FC<ChatProps> = () => {
     setInputValue('');
     await chatActions.addMessage(newMessage);
   };
+
+
 
   return (
     <Box sx={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column' }}>
