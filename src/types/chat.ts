@@ -28,6 +28,6 @@ export interface ChatState {
 export interface ChatActions {
   addMessage: (message: Message) => void;
   setIsTyping: (isTyping: boolean) => void;
-  setError: (error: string | null) => void;
+  setChatError: (error: string | null) => void;
   updateUserPreferences: (preferences: Partial<UserPreferences>) => void;
 }

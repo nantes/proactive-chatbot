@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
   Box,
   Paper,
   Typography,
   TextField,
   IconButton,
-  CircularProgress,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import { Message, ChatState, ChatActions } from '../types/chat';
+import { useChat } from '../hooks/useChat';
+import type { Message } from '../types/chat';
 
 interface ChatProps {
   initialMessages?: Message[];
@@ -17,14 +16,7 @@ interface ChatProps {
 
 export const Chat: React.FC<ChatProps> = ({ initialMessages = [] }) => {
   const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const queryClient = useQueryClient();
-  const { data: messages = initialMessages } = useQuery({
-    queryKey: ['messages'],
-    queryFn: () => initialMessages,
-  });
+  const [chatState, chatActions] = useChat();
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -38,31 +30,11 @@ export const Chat: React.FC<ChatProps> = ({ initialMessages = [] }) => {
         type: 'text',
       };
 
-      queryClient.setQueryData(['messages'], (oldMessages: Message[]) =>
-        [...oldMessages, newMessage]
-      );
-
+      await chatActions.addMessage(newMessage);
       setInputMessage('');
-      setIsTyping(true);
-
-      // Simulación de respuesta del bot
-      setTimeout(() => {
-        const botResponse: Message = {
-          id: Date.now().toString(),
-          content: 'Procesando tu mensaje...',
-          sender: 'bot',
-          timestamp: new Date().toISOString(),
-          type: 'text',
-        };
-
-        queryClient.setQueryData(['messages'], (oldMessages: Message[]) =>
-          [...oldMessages, botResponse]
-        );
-        setIsTyping(false);
-      }, 1000);
     } catch (err) {
-      setError('Error al enviar el mensaje');
-      setIsTyping(false);
+      console.error('Error sending message:', err);
+      chatActions.setChatError('Error al enviar el mensaje');
     }
   };
 
@@ -80,7 +52,7 @@ export const Chat: React.FC<ChatProps> = ({ initialMessages = [] }) => {
           Chat Proactivo
         </Typography>
         <Box sx={{ height: 400, overflowY: 'auto', mb: 2 }}>
-          {messages.map((message) => (
+          {chatState.messages.map((message) => (
             <Box
               key={message.id}
               sx={{
@@ -112,12 +84,12 @@ export const Chat: React.FC<ChatProps> = ({ initialMessages = [] }) => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={isTyping}
+            disabled={chatState.isTyping}
           />
           <IconButton
             color="primary"
             onClick={() => handleSendMessage(inputMessage)}
-            disabled={isTyping || !inputMessage.trim()}
+            disabled={chatState.isTyping || !inputMessage.trim()}
           >
             <SendIcon />
           </IconButton>
